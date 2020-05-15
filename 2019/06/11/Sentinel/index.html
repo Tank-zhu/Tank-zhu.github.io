@@ -1,0 +1,475 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN">
+
+<head>
+    <!--Setting-->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+    <meta http-equiv="Cache-Control" content="no-siteapp">
+    <meta http-equiv="Cache-Control" content="no-transform">
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta name="apple-mobile-web-app-capable" content="Tank">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="format-detection" content="telephone=no,email=no,adress=no">
+    <meta name="browsermode" content="application">
+    <meta name="screen-orientation" content="portrait">
+    <meta name="theme-version" content="1.2.3">
+    <meta name="root" content="/">
+    <link rel="dns-prefetch" href="https://tank-zhu.github.io">
+    <!--SEO-->
+
+<meta name="keywords" content="Sentinel" />
+
+
+<meta name="description" content="[^引子]: 
+​    限流、熔断、服务降级等等词在现在的互联网公司经常被谈及，进入主题之前先来个段子 
+12017年某当红小鲜肉公布恋情，结果微博流量突增好几倍，导致服务挂了，网传当时处理服..." />
+
+
+<meta name="robots" content="all" />
+<meta name="google" content="all" />
+<meta name="googlebot" content="all" />
+<meta name="verify" content="all" />
+    <!--Title-->
+
+<title>
+    
+    分布式环境之高并发场景下的限流与熔断 |
+    
+    Tank
+</title>
+
+<link rel="alternate" href="/atom.xml" title="Tank" type="application/atom+xml">
+
+
+<link rel="icon" href="/favicon.ico">
+
+    
+
+
+<link rel="stylesheet" href="/css/bootstrap.min.css?rev=3.3.7.css">
+<link rel="stylesheet" href="/css/font-awesome.min.css?rev=4.7.0.css">
+<link rel="stylesheet" href="/css/style.css?rev=@@hash.css">
+
+    
+<div class="hide">
+    <script type="text/javascript">
+    var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+    document.write(unescape("%3Cspan class='cnzz_stat_icon_1263868967 hide' %3E%3Cscript%20src%3D%22https%3A%2F%2Fs95.cnzz.com%2Fz_stat.php%3Fweb_id%3D1272564536%22%3E%3C%2Fscript%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "s19.cnzz.com/z_stat.php%3Fid%3D1263868967%26show%3Dpic1' type='text/javascript'%3E%3C/script%3E"));
+    </script>
+</div>
+
+
+
+
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+<!--[if lte IE 8]>
+<style>
+    html{ font-size: 1em }
+</style>
+<![endif]-->
+<!--[if lte IE 9]>
+<div style="ie">你使用的浏览器版本过低，为了你更好的阅读体验，请更新浏览器的版本或者使用其他现代浏览器，比如Chrome、Firefox、Safari等。</div>
+<![endif]-->
+<body>
+    <header class="main-header"  style="background-image:url(
+    http://snippet.shenliyang.com/img/banner.jpg)"
+     >
+    <div class="main-header-box">
+        <a class="header-avatar" href="/" title='Tank'>
+            <img src="/img/avatar.jpg" alt="logo头像" class="img-responsive center-block">
+        </a>
+        <div class="branding">
+            <!--<h2 class="text-hide">Snippet主题,从未如此简单有趣</h2>-->
+            
+            <h2>
+                优秀是一种习惯
+            </h2>
+            
+        </div>
+    </div>
+</header>
+    <nav class="main-navigation">
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="navbar-header"><span class="nav-toggle-button collapsed pull-right" data-toggle="collapse" data-target="#main-menu" id="mnav">
+                        <span class="sr-only"></span>
+                        <i class="fa fa-bars"></i>
+                    </span>
+                    <a class="navbar-brand" href="https://tank-zhu.github.io">
+                        Tank</a>
+                </div>
+                <div class="collapse navbar-collapse" id="main-menu">
+                    <ul class="menu">
+                        
+                        <li role="presentation" class="text-center">
+                            <a href="/"><i class="fa "></i>
+                                首页</a>
+                        </li>
+                        
+                        <li role="presentation" class="text-center">
+                            <a href="/categories/大数据/"><i class="fa "></i>
+                                大数据</a>
+                        </li>
+                        
+                        <li role="presentation" class="text-center">
+                            <a href="/categories/后端/"><i class="fa "></i>
+                                后端</a>
+                        </li>
+                        
+                        <li role="presentation" class="text-center">
+                            <a href="/categories/spring系列/"><i class="fa "></i>
+                                spring系列</a>
+                        </li>
+                        
+                        <li role="presentation" class="text-center">
+                            <a href="/categories/框架系列/"><i class="fa "></i>
+                                框架系列</a>
+                        </li>
+                        
+                        <li role="presentation" class="text-center">
+                            <a href="/categories/工具/"><i class="fa "></i>
+                                工具</a>
+                        </li>
+                        
+                        <li role="presentation" class="text-center">
+                            <a href="/archives/"><i class="fa "></i>
+                                时间轴</a>
+                        </li>
+                        
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+    <section class="content-wrap">
+        <div class="container">
+            <div class="row">
+                <main class="col-md-8 main-content m-post">
+                    <p id="process"></p>
+<article class="post">
+    <div class="post-head">
+        <h1 id="分布式环境之高并发场景下的限流与熔断">
+            
+            分布式环境之高并发场景下的限流与熔断
+            
+        </h1>
+        <div class="post-meta">
+    
+    <span class="categories-meta fa-wrap">
+        <i class="fa fa-folder-open-o"></i>
+        <a class="category-link" href="/categories/%E5%B7%A5%E5%85%B7/">工具</a>
+    </span>
+    
+    
+    <span class="fa-wrap">
+        <i class="fa fa-tags"></i>
+        <span class="tags-meta">
+            
+            <a class="tag-link" href="/tags/Sentinel/" rel="tag">Sentinel</a>
+            
+        </span>
+    </span>
+    
+    
+    
+    <span class="fa-wrap">
+        <i class="fa fa-clock-o"></i>
+        <span class="date-meta">
+            2019/06/11</span>
+    </span>
+    
+    <span class="fa-wrap">
+        <i class="fa fa-eye"></i>
+        <span id="busuanzi_value_page_pv"></span>
+    </span>
+    
+    
+</div>
+        
+        
+        <p class="fa fa-exclamation-triangle warning">
+            本文于<strong>
+                339</strong>
+            天之前发表，文中内容可能已经过时。
+        </p>
+        
+    </div>
+    
+    <div class="post-body post-content">
+        <p>[^引子]: </p>
+<p>​    限流、熔断、服务降级等等词在现在的互联网公司经常被谈及，进入主题之前先来个段子 </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">2017年某当红小鲜肉公布恋情，结果微博流量突增好几倍，导致服务挂了，网传当时处理服务异常的工程师正在老家举办婚礼，只好临时先晾下大波客人独自解决问题，求当时工程师的心里阴影面积。</span><br></pre></td></tr></table></figure>
+
+<h5 id="看完段子我们来反思一下。（如果是自己的公司我们应该怎么处理这种突增流量呢）"><a href="#看完段子我们来反思一下。（如果是自己的公司我们应该怎么处理这种突增流量呢）" class="headerlink" title="看完段子我们来反思一下。（如果是自己的公司我们应该怎么处理这种突增流量呢）"></a>看完段子我们来反思一下。（如果是自己的公司我们应该怎么处理这种突增流量呢）</h5><ol>
+<li>如果有足够多的资源，动态扩容可以解决问题，可是必须要先准备大量资源来应对突增的流量成本太高。（<strong>不在本文讨论范围内</strong>）</li>
+<li>在有限的资源情况下，限流也能解决这个问题，比如热点数据的限流，系统负载保护。</li>
+</ol>
+<h5 id="那什么是限流"><a href="#那什么是限流" class="headerlink" title="那什么是限流 ?"></a>那什么是限流 ?</h5><p>以流量为切入点，从流量控制、熔断降级来帮助服务在流量激增的情况下不会直接被压挂。</p>
+<h5 id="限流工具对比"><a href="#限流工具对比" class="headerlink" title="限流工具对比"></a>限流工具对比</h5><table>
+<thead>
+<tr>
+<th></th>
+<th>Sentinel</th>
+<th>Hystrix</th>
+<th>resilience4j</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>隔离策略</td>
+<td>信号量隔离（并发线程数限流）</td>
+<td>线程池隔离/信号量隔离</td>
+<td>信号量隔离</td>
+</tr>
+<tr>
+<td>熔断降级策略</td>
+<td>基于响应时间、异常比率、异常数</td>
+<td>基于异常比率</td>
+<td>基于异常比率、响应时间</td>
+</tr>
+<tr>
+<td>实时统计实现</td>
+<td>滑动窗口（LeapArray）</td>
+<td>滑动窗口（基于 RxJava）</td>
+<td>Ring Bit Buffer</td>
+</tr>
+<tr>
+<td>动态规则配置</td>
+<td>支持多种数据源</td>
+<td>支持多种数据源</td>
+<td>有限支持</td>
+</tr>
+<tr>
+<td>扩展性</td>
+<td>多个扩展点</td>
+<td>插件的形式</td>
+<td>接口的形式</td>
+</tr>
+<tr>
+<td>基于注解的支持</td>
+<td>支持</td>
+<td>支持</td>
+<td>支持</td>
+</tr>
+<tr>
+<td>限流</td>
+<td>基于 QPS，支持基于调用关系的限流</td>
+<td>有限的支持</td>
+<td>Rate Limiter</td>
+</tr>
+<tr>
+<td>流量整形</td>
+<td>支持预热模式、匀速器模式、预热排队模式</td>
+<td>不支持</td>
+<td>简单的 Rate Limiter 模式</td>
+</tr>
+<tr>
+<td>系统自适应保护</td>
+<td>支持</td>
+<td>不支持</td>
+<td>不支持</td>
+</tr>
+<tr>
+<td>控制台</td>
+<td>提供开箱即用的控制台，可配置规则、查看秒级监控、机器发现等</td>
+<td>简单的监控查看</td>
+<td>不提供控制台，可对接其它监控系统</td>
+</tr>
+</tbody></table>
+<h5 id="为什么选择-Sentinel-点击跳转"><a href="#为什么选择-Sentinel-点击跳转" class="headerlink" title="为什么选择 Sentinel  点击跳转"></a>为什么选择 Sentinel  <a href="https://github.com/alibaba/Sentinel/wiki" target="_blank" rel="noopener">点击跳转</a></h5><ol>
+<li><p>支持限流维度比较多</p>
+</li>
+<li><p>除了对http请求支持限流以外，更无缝衔接DUBBO的RPC接口做限流。</p>
+</li>
+<li><p>提供控制台可以查看监控数据及规则</p>
+</li>
+<li><p>整体模块划分比较好</p>
+<h5 id=""><a href="#" class="headerlink" title=""></a></h5></li>
+</ol>
+<h5 id="项目结构"><a href="#项目结构" class="headerlink" title="项目结构"></a>项目结构</h5><p><img src="/images/Sentinel/%E9%A1%B9%E7%9B%AE%E7%BB%93%E6%9E%84.png" alt=""></p>
+<ul>
+<li><p>sentinel-adapter 针对主流框架的适配器，（我主要使用web 与 dubbo）</p>
+</li>
+<li><p>sentinel-benchmark 基准测试模块</p>
+</li>
+<li><p>sentinel-cluster 集群限流模块，1.4.0版本正式支持集群限流</p>
+</li>
+<li><p>sentinel-core 核心模块，所有的限流降级等功能</p>
+</li>
+<li><p>sentinel-dashboard 控制台模块，提供可视化监控，及规则配置</p>
+</li>
+<li><p>sentinel-demo  示例模块</p>
+</li>
+<li><p>sentinel-transport   数据传输模块</p>
+</li>
+</ul>
+<h5 id="先来看看Sentinel的集群限流"><a href="#先来看看Sentinel的集群限流" class="headerlink" title="先来看看Sentinel的集群限流"></a>先来看看Sentinel的集群限流</h5><p><img src="https://github.com/alibaba/Sentinel/wiki/image/limitflow.gif" alt="img"></p>
+<p><img src="/images/%E9%99%90%E6%B5%81.png" alt=""></p>
+<p>我们通常在上生产时会对服务做一个压测，那我们可以根据压测结果来设置限流的值。由于负载均衡策略不同，可能单机处理QPS不同。这时可以采用集群总流量来控制整个QPS。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// web限流</span></span><br><span class="line">Entry entry = <span class="keyword">null</span>;</span><br><span class="line"><span class="comment">// 务必保证finally会被执行</span></span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">  <span class="comment">// 资源名可使用任意有业务语义的字符串</span></span><br><span class="line">  entry = SphU.entry(<span class="string">"自定义资源名"</span>);</span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">   * 被保护的业务逻辑</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">&#125; <span class="keyword">catch</span> (BlockException e1) &#123;</span><br><span class="line">  <span class="comment">// 资源访问阻止，被限流或被降级</span></span><br><span class="line">  <span class="comment">// 进行相应的处理操作</span></span><br><span class="line">&#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">  <span class="keyword">if</span> (entry != <span class="keyword">null</span>) &#123;</span><br><span class="line">    entry.exit();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// dubbo RPC 限流</span></span><br><span class="line"><span class="comment">// 模拟多线程调用</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> ExecutorService pool = Executors.newFixedThreadPool(<span class="number">10</span>,</span><br><span class="line">        <span class="keyword">new</span> NamedThreadFactory(<span class="string">"dubbo-consumer-pool"</span>));</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">  		<span class="comment">//初始化规则</span></span><br><span class="line">        initFlowRule();</span><br><span class="line">        AnnotationConfigApplicationContext consumerContext = <span class="keyword">new</span> AnnotationConfigApplicationContext();</span><br><span class="line">        consumerContext.register(ConsumerConfiguration<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">        consumerContext.refresh();</span><br><span class="line">        FooServiceConsumer service = consumerContext.getBean(FooServiceConsumer<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++) &#123;</span><br><span class="line">          <span class="comment">//用线程程调用</span></span><br><span class="line">            pool.submit(() -&gt; &#123;</span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    String message = service.sayHello(<span class="string">"Eric"</span>);</span><br><span class="line">                    System.out.println(<span class="string">"Success: "</span> + message);</span><br><span class="line">                &#125; <span class="keyword">catch</span> (SentinelRpcException ex) &#123;</span><br><span class="line">                    System.out.println(<span class="string">"Blocked"</span>);</span><br><span class="line">                &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">                    ex.printStackTrace();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;);</span><br><span class="line">            pool.submit(() -&gt; System.out.println(<span class="string">"Another: "</span> + service.doAnother()));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">initFlowRule</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        FlowRule flowRule = <span class="keyword">new</span> FlowRule();</span><br><span class="line">        flowRule.setResource(RES_KEY);</span><br><span class="line">      	<span class="comment">//每秒最多5个请求</span></span><br><span class="line">        flowRule.setCount(<span class="number">5</span>);</span><br><span class="line">      	<span class="comment">// 线程数维度</span></span><br><span class="line">        <span class="comment">//flowRule.setGrade(RuleConstant.FLOW_GRADE_THREAD);</span></span><br><span class="line">      	<span class="comment">//QPS 维度</span></span><br><span class="line">        flowRule.setGrade(RuleConstant.FLOW_GRADE_QPS);</span><br><span class="line">        flowRule.setLimitApp(<span class="string">"default"</span>);</span><br><span class="line">        FlowRuleManager.loadRules(Collections.singletonList(flowRule));</span><br><span class="line">    &#125;</span><br><span class="line"><span class="comment">/** 运行结果   </span></span><br><span class="line"><span class="comment">Another: 2018-12-28T14:25:50.378</span></span><br><span class="line"><span class="comment">Another: 2018-12-28T14:25:50.379</span></span><br><span class="line"><span class="comment">Success: Hello, Eric at 2018-12-28T14:25:50.378</span></span><br><span class="line"><span class="comment">Success: Hello, Eric at 2018-12-28T14:25:50.378</span></span><br><span class="line"><span class="comment">Success: Hello, Eric at 2018-12-28T14:25:50.379</span></span><br><span class="line"><span class="comment">Success: Hello, Eric at 2018-12-28T14:25:50.379</span></span><br><span class="line"><span class="comment">Another: 2018-12-28T14:25:50.379</span></span><br><span class="line"><span class="comment">Another: 2018-12-28T14:25:50.379</span></span><br><span class="line"><span class="comment">Success: Hello, Eric at 2018-12-28T14:25:50.379</span></span><br><span class="line"><span class="comment">Another: 2018-12-28T14:25:50.387</span></span><br><span class="line"><span class="comment">Another: 2018-12-28T14:25:50.387</span></span><br><span class="line"><span class="comment">Another: 2018-12-28T14:25:50.379</span></span><br><span class="line"><span class="comment">Another: 2018-12-28T14:25:50.388</span></span><br><span class="line"><span class="comment">Another: 2018-12-28T14:25:50.388</span></span><br><span class="line"><span class="comment">Another: 2018-12-28T14:25:50.389</span></span><br><span class="line"><span class="comment">Blocked</span></span><br><span class="line"><span class="comment">Blocked</span></span><br><span class="line"><span class="comment">Blocked</span></span><br><span class="line"><span class="comment">Blocked</span></span><br><span class="line"><span class="comment">Blocked</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="comment">// 运行结果可以看出当流量达到阀值时会快速失败</span></span><br></pre></td></tr></table></figure>
+
+<h6 id="-1"><a href="#-1" class="headerlink" title=""></a></h6><h5 id="Sentinel-dashboard的集群模式想要生效是需要二次开发。"><a href="#Sentinel-dashboard的集群模式想要生效是需要二次开发。" class="headerlink" title="Sentinel-dashboard的集群模式想要生效是需要二次开发。"></a>Sentinel-dashboard的集群模式想要生效是需要二次开发。</h5><p><img src="/images/Sentinel/%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E6%9E%B6%E6%9E%84.png" alt=""></p>
+<p>这个是官方建议的架构。我也是按这个架构二次开发。</p>
+<ul>
+<li>dashboard  配置规则</li>
+<li>将规则持久到Zookeeper</li>
+<li>所有应用节点监听这个节点</li>
+<li>数据变更时，应用重新加载规则</li>
+</ul>
+<p>以上需要注意的是集群限流还需在集群限流页配置节点信息 也就是指定上面的谁是Server 谁是Client</p>
+<p><img src="/images/Sentinel/server.png" alt=""></p>
+<p><img src="/images/Sentinel/client.png" alt=""></p>
+<p>这里说明一下。官方的架构图稍微有些抽象，我就用大白话说明一下</p>
+<ul>
+<li>token service 这里指的是令牌服务端。有两种方式<ul>
+<li>独立部署一个token server 优点是比较独立。缺点是增加成本，且增加维护的工作量</li>
+<li>嵌入式 token server  就是以某个应用节点做为token server 其他节点做为client。优点是简单不需要额外成本，缺点与应用耦合在一起。</li>
+</ul>
+</li>
+<li>client 指的是需要被限流的应用，要指定token server IP 及端口。来获得令牌。</li>
+</ul>
+<h5 id="注意：-1-4-0-版本的Sentinel-在集群限流模式下，如果token-server-重启后，会出现集群限流失效，变成-了单机限流。原因是token-server重启后client重试次数过了后就不会再去重试，转而变成单机模式。【官方回应-1-4-1版本会改成一直重试】"><a href="#注意：-1-4-0-版本的Sentinel-在集群限流模式下，如果token-server-重启后，会出现集群限流失效，变成-了单机限流。原因是token-server重启后client重试次数过了后就不会再去重试，转而变成单机模式。【官方回应-1-4-1版本会改成一直重试】" class="headerlink" title="注意： 1.4.0 版本的Sentinel 在集群限流模式下，如果token server 重启后，会出现集群限流失效，变成 了单机限流。原因是token server重启后client重试次数过了后就不会再去重试，转而变成单机模式。【官方回应 1.4.1版本会改成一直重试】"></a>注意： 1.4.0 版本的Sentinel 在集群限流模式下，如果token server 重启后，会出现集群限流失效，变成 了单机限流。原因是token server重启后client重试次数过了后就不会再去重试，转而变成单机模式。【官方回应 1.4.1版本会改成一直重试】</h5><h5 id="熔断-降级"><a href="#熔断-降级" class="headerlink" title="熔断 降级"></a>熔断 降级</h5><p>除了对QPS限流外，我们最常用的就是通过熔断降级保证服务不会完全宕机，例如某个RPC接口处理能力接近瓶颈时，表现为 timeout，异常比例升高的时候，则对这个资源的调用进行限制，并让请求快速失败，避免影响到其它的资源，最终产生雪崩的效果。</p>
+<p><img src="/images/Sentinel/%E9%99%8D%E7%BA%A7.png" alt=""></p>
+<h5 id="系统负载保护"><a href="#系统负载保护" class="headerlink" title="系统负载保护"></a>系统负载保护</h5><p>限流 或者 熔断降级都是指定到具体的请求，而系统负载保护，是针对整体应用集群，当系统负载较高的时候，如果还持续让请求进入，可能会导致系统崩溃，无法响应。在集群环境下，网络负载均衡会把本应这台机器承载的流量转发到其它的机器上去。如果这个时候其它的机器也处在一个边缘状态的时候，这个增加的流量就会导致这台机器也崩溃，最后导致整个集群不可用。</p>
+<p><img src="/images/Sentinel/%E7%B3%BB%E7%BB%9F%E9%99%90%E6%B5%81.jpg" alt=""></p>
+<h5 id="主流框架的适配"><a href="#主流框架的适配" class="headerlink" title="主流框架的适配"></a>主流框架的适配</h5><ul>
+<li>web servlet   (已经集成)</li>
+<li>dubbo  （已经集成）</li>
+<li>spring boot /spring cloud  （未测试）</li>
+<li>gRPC  （未测试）</li>
+<li>rocketmq  （未测试）</li>
+</ul>
+
+    </div>
+    
+    <div class="post-footer">
+        <div>
+            
+            转载声明：
+            商业转载请联系作者获得授权,非商业转载请注明出处 © <a href="" target="_blank">Snippet</a>
+            
+            
+        </div>
+        <div>
+            
+        </div>
+    </div>
+</article>
+<div class="article-nav prev-next-wrap clearfix">
+    
+    <a href="/2019/06/12/spring-boot-%E5%A4%96%E9%83%A8%E5%AE%B9%E5%99%A8%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B%E5%8F%8A%E5%8E%9F%E7%90%86/" class="pre-post btn btn-default" title='spring-boot 外部容器启动流程及原理'>
+        <i class="fa fa-angle-left fa-fw"></i><span class="hidden-lg">上一篇</span>
+        <span class="hidden-xs">
+            spring-boot 外部容器启动流程及原理</span>
+    </a>
+    
+    
+    <a href="/2019/06/11/qidai2/" class="next-post btn btn-default" title='敬请期待'>
+        <span class="hidden-lg">下一篇</span>
+        <span class="hidden-xs">
+            敬请期待</span><i class="fa fa-angle-right fa-fw"></i>
+    </a>
+    
+</div>
+
+<div id="comments">
+    
+
+<div id="vcomments" class="valine"></div>
+
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="/assets/valine.min.js"></script>
+
+<script>
+new Valine({
+    av: AV,
+    el: '#vcomments',
+    appId: 'jTdYALXsJL8VUoY3NAGWyUvY-gzGzoHsz',
+    appKey: 'JWcBzRsMhB6GhdduKEg2GlGT',
+    placeholder: '欢迎留言',
+    notify: false,
+    verify: true,
+    avatar: 'mm',
+    meta: 'nick,mail'.split(','),
+    pageSize: '10',
+    path: window.location.pathname,
+    lang: 'zh-CN'.toLowerCase()
+})
+</script>
+
+
+</div>
+
+                </main>
+                
+                    <aside id="article-toc" role="navigation" class="col-md-4">
+    <div class="widget">
+        <h3 class="title">
+            文章目录
+        </h3>
+        
+        <ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#看完段子我们来反思一下。（如果是自己的公司我们应该怎么处理这种突增流量呢）"><span class="toc-text">看完段子我们来反思一下。（如果是自己的公司我们应该怎么处理这种突增流量呢）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#那什么是限流"><span class="toc-text">那什么是限流 ?</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#限流工具对比"><span class="toc-text">限流工具对比</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#为什么选择-Sentinel-点击跳转"><span class="toc-text">为什么选择 Sentinel  点击跳转</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#null"><span class="toc-text"></span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#项目结构"><span class="toc-text">项目结构</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#先来看看Sentinel的集群限流"><span class="toc-text">先来看看Sentinel的集群限流</span></a><ol class="toc-child"><li class="toc-item toc-level-6"><a class="toc-link" href="#-1"><span class="toc-text"></span></a></li></ol></li><li class="toc-item toc-level-5"><a class="toc-link" href="#Sentinel-dashboard的集群模式想要生效是需要二次开发。"><span class="toc-text">Sentinel-dashboard的集群模式想要生效是需要二次开发。</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#注意：-1-4-0-版本的Sentinel-在集群限流模式下，如果token-server-重启后，会出现集群限流失效，变成-了单机限流。原因是token-server重启后client重试次数过了后就不会再去重试，转而变成单机模式。【官方回应-1-4-1版本会改成一直重试】"><span class="toc-text">注意： 1.4.0 版本的Sentinel 在集群限流模式下，如果token server 重启后，会出现集群限流失效，变成 了单机限流。原因是token server重启后client重试次数过了后就不会再去重试，转而变成单机模式。【官方回应 1.4.1版本会改成一直重试】</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#熔断-降级"><span class="toc-text">熔断 降级</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#系统负载保护"><span class="toc-text">系统负载保护</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#主流框架的适配"><span class="toc-text">主流框架的适配</span></a></li></ol>
+        
+    </div>
+</aside>
+                
+            </div>
+        </div>
+    </section>
+    <footer class="main-footer">
+    <div class="container">
+        <div class="row">
+        </div>
+    </div>
+</footer>
+<a id="back-to-top" class="icon-btn hide">
+    <i class="fa fa-chevron-up"></i>
+</a>
+    <div class="copyright">
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="busuanzi">
+    
+    访问量:
+    <strong id="busuanzi_value_site_pv">
+        <i class="fa fa-spinner fa-spin"></i>
+    </strong>
+    &nbsp; | &nbsp;
+    访客数:
+    <strong id="busuanzi_value_site_uv">
+        <i class="fa fa-spinner fa-spin"></i>
+    </strong>
+    
+</div>
+            </div>
+            <div class="col-sm-12">
+                <span>Copyright &copy;
+                    2017
+                    
+                </span> |
+                <span>
+                    Powered by <a href="//hexo.io" class="copyright-links" target="_blank" rel="nofollow">Hexo</a>
+                </span> |
+                <span>
+                    Theme by <a href="//github.com/shenliyang/hexo-theme-snippet.git" class="copyright-links" target="_blank" rel="nofollow">Snippet</a>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+<script src="/js/app.js?rev=@@hash.js"></script>
+
+</body>
+</html>

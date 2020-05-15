@@ -1,0 +1,363 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN">
+
+<head>
+    <!--Setting-->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+    <meta http-equiv="Cache-Control" content="no-siteapp">
+    <meta http-equiv="Cache-Control" content="no-transform">
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta name="apple-mobile-web-app-capable" content="Tank">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="format-detection" content="telephone=no,email=no,adress=no">
+    <meta name="browsermode" content="application">
+    <meta name="screen-orientation" content="portrait">
+    <meta name="theme-version" content="1.2.3">
+    <meta name="root" content="/">
+    <link rel="dns-prefetch" href="https://tank-zhu.github.io">
+    <!--SEO-->
+
+<meta name="keywords" content="springboot" />
+
+
+<meta name="description" content="
+   外部容器启动流程及原理 author: Tank
+    
+
+
+前言springboot 嵌入式容器启动是以jar包形式，那如果采用外部容器启动就需要使用war包。
+外部容器启动准备工作..." />
+
+
+<meta name="robots" content="all" />
+<meta name="google" content="all" />
+<meta name="googlebot" content="all" />
+<meta name="verify" content="all" />
+    <!--Title-->
+
+<title>
+    
+    spring-boot 外部容器启动流程及原理 |
+    
+    Tank
+</title>
+
+<link rel="alternate" href="/atom.xml" title="Tank" type="application/atom+xml">
+
+
+<link rel="icon" href="/favicon.ico">
+
+    
+
+
+<link rel="stylesheet" href="/css/bootstrap.min.css?rev=3.3.7.css">
+<link rel="stylesheet" href="/css/font-awesome.min.css?rev=4.7.0.css">
+<link rel="stylesheet" href="/css/style.css?rev=@@hash.css">
+
+    
+<div class="hide">
+    <script type="text/javascript">
+    var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+    document.write(unescape("%3Cspan class='cnzz_stat_icon_1263868967 hide' %3E%3Cscript%20src%3D%22https%3A%2F%2Fs95.cnzz.com%2Fz_stat.php%3Fweb_id%3D1272564536%22%3E%3C%2Fscript%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "s19.cnzz.com/z_stat.php%3Fid%3D1263868967%26show%3Dpic1' type='text/javascript'%3E%3C/script%3E"));
+    </script>
+</div>
+
+
+
+
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+<!--[if lte IE 8]>
+<style>
+    html{ font-size: 1em }
+</style>
+<![endif]-->
+<!--[if lte IE 9]>
+<div style="ie">你使用的浏览器版本过低，为了你更好的阅读体验，请更新浏览器的版本或者使用其他现代浏览器，比如Chrome、Firefox、Safari等。</div>
+<![endif]-->
+<body>
+    <header class="main-header"  style="background-image:url(
+    http://snippet.shenliyang.com/img/banner.jpg)"
+     >
+    <div class="main-header-box">
+        <a class="header-avatar" href="/" title='Tank'>
+            <img src="/img/avatar.jpg" alt="logo头像" class="img-responsive center-block">
+        </a>
+        <div class="branding">
+            <!--<h2 class="text-hide">Snippet主题,从未如此简单有趣</h2>-->
+            
+            <h2>
+                优秀是一种习惯
+            </h2>
+            
+        </div>
+    </div>
+</header>
+    <nav class="main-navigation">
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="navbar-header"><span class="nav-toggle-button collapsed pull-right" data-toggle="collapse" data-target="#main-menu" id="mnav">
+                        <span class="sr-only"></span>
+                        <i class="fa fa-bars"></i>
+                    </span>
+                    <a class="navbar-brand" href="https://tank-zhu.github.io">
+                        Tank</a>
+                </div>
+                <div class="collapse navbar-collapse" id="main-menu">
+                    <ul class="menu">
+                        
+                        <li role="presentation" class="text-center">
+                            <a href="/"><i class="fa "></i>
+                                首页</a>
+                        </li>
+                        
+                        <li role="presentation" class="text-center">
+                            <a href="/categories/大数据/"><i class="fa "></i>
+                                大数据</a>
+                        </li>
+                        
+                        <li role="presentation" class="text-center">
+                            <a href="/categories/后端/"><i class="fa "></i>
+                                后端</a>
+                        </li>
+                        
+                        <li role="presentation" class="text-center">
+                            <a href="/categories/spring系列/"><i class="fa "></i>
+                                spring系列</a>
+                        </li>
+                        
+                        <li role="presentation" class="text-center">
+                            <a href="/categories/框架系列/"><i class="fa "></i>
+                                框架系列</a>
+                        </li>
+                        
+                        <li role="presentation" class="text-center">
+                            <a href="/categories/工具/"><i class="fa "></i>
+                                工具</a>
+                        </li>
+                        
+                        <li role="presentation" class="text-center">
+                            <a href="/archives/"><i class="fa "></i>
+                                时间轴</a>
+                        </li>
+                        
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+    <section class="content-wrap">
+        <div class="container">
+            <div class="row">
+                <main class="col-md-8 main-content m-post">
+                    <p id="process"></p>
+<article class="post">
+    <div class="post-head">
+        <h1 id="spring-boot 外部容器启动流程及原理">
+            
+            spring-boot 外部容器启动流程及原理
+            
+        </h1>
+        <div class="post-meta">
+    
+    <span class="categories-meta fa-wrap">
+        <i class="fa fa-folder-open-o"></i>
+        <a class="category-link" href="/categories/spring%E7%B3%BB%E5%88%97/">spring系列</a>
+    </span>
+    
+    
+    <span class="fa-wrap">
+        <i class="fa fa-tags"></i>
+        <span class="tags-meta">
+            
+            <a class="tag-link" href="/tags/springboot/" rel="tag">springboot</a>
+            
+        </span>
+    </span>
+    
+    
+    
+    <span class="fa-wrap">
+        <i class="fa fa-clock-o"></i>
+        <span class="date-meta">
+            2019/06/12</span>
+    </span>
+    
+    <span class="fa-wrap">
+        <i class="fa fa-eye"></i>
+        <span id="busuanzi_value_page_pv"></span>
+    </span>
+    
+    
+</div>
+        
+        
+        <p class="fa fa-exclamation-triangle warning">
+            本文于<strong>
+                338</strong>
+            天之前发表，文中内容可能已经过时。
+        </p>
+        
+    </div>
+    
+    <div class="post-body post-content">
+        <center><h2>
+   外部容器启动流程及原理 author: Tank
+    </h2></center>
+
+<p><img src="/images/spring-boot.jpg" alt=""></p>
+<h4 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h4><p>springboot 嵌入式容器启动是以jar包形式，那如果采用外部容器启动就需要使用war包。</p>
+<h4 id="外部容器启动准备工作"><a href="#外部容器启动准备工作" class="headerlink" title="外部容器启动准备工作"></a>外部容器启动准备工作</h4><h5 id="1、准备一个外部容器如-（tomcat）在idea里配置好即可，这里不做多解释"><a href="#1、准备一个外部容器如-（tomcat）在idea里配置好即可，这里不做多解释" class="headerlink" title="1、准备一个外部容器如 （tomcat）在idea里配置好即可，这里不做多解释"></a>1、准备一个外部容器如 （tomcat）在idea里配置好即可，这里不做多解释</h5><h5 id="2、需要新增一个servlet初始化时指定主类的一个类-ServletInitializer-名字随意，这个是模版生成的"><a href="#2、需要新增一个servlet初始化时指定主类的一个类-ServletInitializer-名字随意，这个是模版生成的" class="headerlink" title="2、需要新增一个servlet初始化时指定主类的一个类  (ServletInitializer 名字随意，这个是模版生成的)"></a>2、需要新增一个servlet初始化时指定主类的一个类  (ServletInitializer 名字随意，这个是模版生成的)</h5><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ServletInitializer</span> <span class="keyword">extends</span> <span class="title">SpringBootServletInitializer</span> </span>&#123;</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">protected</span> SpringApplicationBuilder <span class="title">configure</span><span class="params">(SpringApplicationBuilder application)</span> </span>&#123;</span><br><span class="line">		<span class="keyword">return</span> application.sources(SpringBoot04WebJspApplication<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h5 id="3、指定打包方式为war-tomcat依赖的scope需要改成provided"><a href="#3、指定打包方式为war-tomcat依赖的scope需要改成provided" class="headerlink" title="3、指定打包方式为war   tomcat依赖的scope需要改成provided"></a>3、指定打包方式为war   tomcat依赖的scope需要改成provided</h5><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!--pom.xml --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">packaging</span>&gt;</span>war<span class="tag">&lt;/<span class="name">packaging</span>&gt;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-tomcat<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">scope</span>&gt;</span>provided<span class="tag">&lt;/<span class="name">scope</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h5 id="4、查看servlet3-0规范-Annotations-and-pluggability-gt-Shared-libraries-runtimes-pluggability"><a href="#4、查看servlet3-0规范-Annotations-and-pluggability-gt-Shared-libraries-runtimes-pluggability" class="headerlink" title="4、查看servlet3.0规范  Annotations and pluggability  -&gt; Shared libraries / runtimes pluggability"></a>4、查看servlet3.0规范  Annotations and pluggability  -&gt; Shared libraries / runtimes pluggability</h5><p>In addition to supporting fragments and use of annotations one of the requirements<br>is that not only we be able to plug-in things that are bundled in the WEB-INF/lib<br>but also plugin shared copies of frameworks - including being able to plug-in to the<br>web container things like JAX-WS, JAX-RS and JSF that build on top of the web<br>container. The ServletContainerInitializer allows handling such a use case<br>as described below.<br><strong><em>The ServletContainerInitializer class is looked up via the jar services API.</em></strong><br><strong><em>For each application, an instance of the ServletContainerInitializer is</em></strong><br><strong><em>created by the container at application startup time. The framework providing an</em></strong><br><strong><em>implementation of the ServletContainerInitializer MUST bundle in the</em></strong><br><strong><em>META-INF/services directory of the jar file a file called</em></strong><br><strong><em>javax.servlet.ServletContainerInitializer</em></strong>, as per the jar services API,<br>that points to the implementation class of the ServletContainerInitializer.<br>In addition to the ServletContainerInitializer we also have an annotation -<br>HandlesTypes. The HandlesTypes annotation on the implementation of the<br>ServletContainerInitializer is used to express interest in classes that may<br>have annotations (type, method or field level annotations) specified in the value of<br>the HandlesTypes or if it extends / implements one those classes anywhere in the<br>class’ super types. The HandlesTypes annotation is applied irrespective of the<br>setting of metadata-complete.</p>
+<p>请注意加粗处的说明：大白话的意思就是，启动外部tomcat时就会创建一个ServletContainerInitializer 的实例，这个实例呢必须在META-INF/services下名为javax.servlet.servletcontainerinitializer的文件。他会检查所有jar包。</p>
+<h4 id="启动流程原理"><a href="#启动流程原理" class="headerlink" title="启动流程原理"></a>启动流程原理</h4><h5 id="org-springframework-spring-web-5-0-8-为例-打开META-INF-services"><a href="#org-springframework-spring-web-5-0-8-为例-打开META-INF-services" class="headerlink" title="org.springframework:spring-web:5.0.8 为例     打开META-INF/services"></a>org.springframework:spring-web:5.0.8 为例     打开META-INF/services</h5><p>javax.servlet.servletcontainerinitializer文件内容如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.springframework.web.SpringServletContainerInitializer</span><br></pre></td></tr></table></figure>
+
+<p>从servlet3.0规则来看。外部tomcat启动后会扫描这个文件，并创建SpringServletContainerInitializer实例</p>
+<h5 id="SpringServletContainerInitializer-【此类为ServletContainerInitializer子类】"><a href="#SpringServletContainerInitializer-【此类为ServletContainerInitializer子类】" class="headerlink" title="SpringServletContainerInitializer    【此类为ServletContainerInitializer子类】"></a>SpringServletContainerInitializer    【此类为ServletContainerInitializer子类】</h5><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//HandlesTypes 的作用是声明 SpringServletContainerInitializer能处理的类型 并且从 Set&lt;Class&lt;?&gt;&gt; //webAppInitializerClasses中可以获取</span></span><br><span class="line"><span class="meta">@HandlesTypes</span>(WebApplicationInitializer<span class="class">.<span class="keyword">class</span>)</span></span><br><span class="line"><span class="class"><span class="title">public</span> <span class="title">class</span> <span class="title">SpringServletContainerInitializer</span> <span class="keyword">implements</span> <span class="title">ServletContainerInitializer</span> </span>&#123;</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onStartup</span><span class="params">(@Nullable Set&lt;Class&lt;?&gt;&gt; webAppInitializerClasses, ServletContext servletContext)</span></span></span><br><span class="line"><span class="function">			<span class="keyword">throws</span> ServletException </span>&#123;</span><br><span class="line">		List&lt;WebApplicationInitializer&gt; initializers = <span class="keyword">new</span> LinkedList&lt;&gt;();</span><br><span class="line">        <span class="comment">//webAppInitializerClasses 必须不能为空否则应用启动不了</span></span><br><span class="line">		<span class="keyword">if</span> (webAppInitializerClasses != <span class="keyword">null</span>) &#123;</span><br><span class="line">			<span class="keyword">for</span> (Class&lt;?&gt; waiClass : webAppInitializerClasses) &#123;</span><br><span class="line">                <span class="comment">//1、不能是接口 也不能是抽象类而且必须是 WebApplicationInitializer的子类</span></span><br><span class="line">                <span class="comment">//WebApplicationInitializer默认的实现全是抽象类。只有我们上面的准备工作内写的</span></span><br><span class="line">                <span class="comment">//ServletInitializer 一个类符合这个要求   </span></span><br><span class="line">				<span class="keyword">if</span> (!waiClass.isInterface() &amp;&amp; !Modifier.isAbstract(waiClass.getModifiers()) &amp;&amp;</span><br><span class="line">						WebApplicationInitializer<span class="class">.<span class="keyword">class</span>.<span class="title">isAssignableFrom</span>(<span class="title">waiClass</span>)) </span>&#123;</span><br><span class="line">					<span class="keyword">try</span> &#123;</span><br><span class="line">                        <span class="comment">/*（ServletInitializer） 实例化 newInstance()  后加入到列表*/</span></span><br><span class="line">						initializers.add((WebApplicationInitializer)					ReflectionUtils.accessibleConstructor(waiClass).newInstance());</span><br><span class="line">					&#125;</span><br><span class="line">                    <span class="comment">//省略代码....</span></span><br><span class="line">                    <span class="comment">//省略代码....</span></span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">        <span class="keyword">for</span> (WebApplicationInitializer initializer : initializers) &#123;</span><br><span class="line">            <span class="comment">//调用onStartup</span></span><br><span class="line">            <span class="comment">//ServletInitializer 只有configure 方法，但他是SpringBootServletInitializer的子类</span></span><br><span class="line">            <span class="comment">//也就是调用的是SpringBootServletInitializer</span></span><br><span class="line">			initializer.onStartup(servletContext);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h5 id="WebApplicationInitializer-【SpringServletContainerInitializer能处理的类型】"><a href="#WebApplicationInitializer-【SpringServletContainerInitializer能处理的类型】" class="headerlink" title="WebApplicationInitializer    【SpringServletContainerInitializer能处理的类型】"></a>WebApplicationInitializer    【SpringServletContainerInitializer能处理的类型】</h5><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**WebApplicationInitializer</span></span><br><span class="line"><span class="comment">		AbstractContextLoaderInitializer</span></span><br><span class="line"><span class="comment">		AbstractDispatcherHandlerInitializer</span></span><br><span class="line"><span class="comment">		AbstractServletHttpHandlerAdapterInitializer</span></span><br><span class="line"><span class="comment">		AbstractReactiveWebInitializer</span></span><br><span class="line"><span class="comment">		JerseyWebApplicationInitializer  </span></span><br><span class="line"><span class="comment">		SpringBootServletInitializer     </span></span><br><span class="line"><span class="comment">		</span></span><br><span class="line"><span class="comment">		请注意全是抽象类。并没有一个真正的class</span></span><br><span class="line"><span class="comment">		而我们使用的是springboot框架，所以我们肯定会</span></span><br><span class="line"><span class="comment">		选SpringBootServletInitializer  其他的不做多说</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">WebApplicationInitializer</span> </span>&#123;</span><br><span class="line">	<span class="function"><span class="keyword">void</span> <span class="title">onStartup</span><span class="params">(ServletContext servletContext)</span> <span class="keyword">throws</span> ServletException</span>;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h5 id="SpringBootServletInitializer-【WebApplicationInitializer-的抽象实现】"><a href="#SpringBootServletInitializer-【WebApplicationInitializer-的抽象实现】" class="headerlink" title="SpringBootServletInitializer   【WebApplicationInitializer   的抽象实现】"></a>SpringBootServletInitializer   【WebApplicationInitializer   的抽象实现】</h5><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onStartup</span><span class="params">(ServletContext servletContext)</span> <span class="keyword">throws</span> ServletException </span>&#123;</span><br><span class="line">        <span class="comment">//省略代码....</span></span><br><span class="line">        <span class="comment">//当调用onStartup其实就是要启动应用。那这里是先创建根容器。</span></span><br><span class="line">        <span class="comment">//主要流程请看 createRootApplicationContext  </span></span><br><span class="line">		WebApplicationContext rootAppContext = createRootApplicationContext(</span><br><span class="line">				servletContext);</span><br><span class="line">		<span class="keyword">if</span> (rootAppContext != <span class="keyword">null</span>) &#123;</span><br><span class="line">			servletContext.addListener(<span class="keyword">new</span> ContextLoaderListener(rootAppContext) &#123;</span><br><span class="line">				<span class="meta">@Override</span></span><br><span class="line">				<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">contextInitialized</span><span class="params">(ServletContextEvent event)</span> </span>&#123;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;);</span><br><span class="line">		&#125;</span><br><span class="line"><span class="comment">//省略代码....</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">//主要操作来了。。。。。创建容器</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> WebApplicationContext <span class="title">createRootApplicationContext</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">			ServletContext servletContext)</span> </span>&#123;</span><br><span class="line">    <span class="comment">//先是创建一个spring应用构建器</span></span><br><span class="line">		SpringApplicationBuilder builder = createSpringApplicationBuilder();</span><br><span class="line">    <span class="comment">//指定构建器主类</span></span><br><span class="line">		builder.main(getClass());</span><br><span class="line">    <span class="comment">//获取现有的根应用上下文</span></span><br><span class="line">		ApplicationContext parent = getExistingRootWebApplicationContext(servletContext);</span><br><span class="line">		<span class="keyword">if</span> (parent != <span class="keyword">null</span>) &#123;</span><br><span class="line">            </span><br><span class="line">			<span class="keyword">this</span>.logger.info(<span class="string">"Root context already created (using as parent)."</span>);</span><br><span class="line">			servletContext.setAttribute(</span><br><span class="line">					WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, <span class="keyword">null</span>);</span><br><span class="line">            <span class="comment">//如果有就先创建父级容器</span></span><br><span class="line">			builder.initializers(<span class="keyword">new</span> ParentContextApplicationContextInitializer(parent));</span><br><span class="line">		&#125;</span><br><span class="line">    <span class="comment">//初始化当前servlet容器</span></span><br><span class="line">		builder.initializers(</span><br><span class="line">				<span class="keyword">new</span> ServletContextApplicationContextInitializer(servletContext));</span><br><span class="line">		builder.contextClass(AnnotationConfigServletWebServerApplicationContext<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">    <span class="comment">//当前类的configure没有做任何处理，但是被他的子类 【ServletInitializer】重写了。所调用的是子类，</span></span><br><span class="line">    <span class="comment">//指定应用的启动源。</span></span><br><span class="line">		builder = configure(builder);</span><br><span class="line">		builder.listeners(<span class="keyword">new</span> WebEnvironmentPropertySourceInitializer(servletContext));</span><br><span class="line">    <span class="comment">//用构建器构建出一个spring应用</span></span><br><span class="line">		SpringApplication application = builder.build();</span><br><span class="line">    <span class="comment">//这里就是在判断有没有指定sources类，或者有没有多个等。。。</span></span><br><span class="line">		<span class="keyword">if</span> (application.getAllSources().isEmpty() &amp;&amp; AnnotationUtils</span><br><span class="line">				.findAnnotation(getClass(), Configuration<span class="class">.<span class="keyword">class</span>) !</span>= <span class="keyword">null</span>) &#123;</span><br><span class="line">			application.addPrimarySources(Collections.singleton(getClass()));</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> (<span class="keyword">this</span>.registerErrorPageFilter) &#123;</span><br><span class="line">			application.addPrimarySources(</span><br><span class="line">					Collections.singleton(ErrorPageFilterConfiguration<span class="class">.<span class="keyword">class</span>))</span>;</span><br><span class="line">		&#125;</span><br><span class="line">    	<span class="comment">//调用run方法</span></span><br><span class="line">		<span class="keyword">return</span> run(application);</span><br><span class="line">	&#125;</span><br><span class="line"><span class="comment">//上面的run方法调用的就是这个类。看到这里是不是觉得熟悉了。。。</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> WebApplicationContext <span class="title">run</span><span class="params">(SpringApplication application)</span> </span>&#123;</span><br><span class="line">		<span class="keyword">return</span> (WebApplicationContext) application.run();</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+
+<h5 id="SpringApplication-spring应用的启动入口-无论是外部容器启动还是嵌入式容器启动都必须从此处开始"><a href="#SpringApplication-spring应用的启动入口-无论是外部容器启动还是嵌入式容器启动都必须从此处开始" class="headerlink" title="SpringApplication     spring应用的启动入口  无论是外部容器启动还是嵌入式容器启动都必须从此处开始"></a>SpringApplication     spring应用的启动入口  无论是外部容器启动还是嵌入式容器启动都必须从此处开始</h5><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> ConfigurableApplicationContext <span class="title">run</span><span class="params">(String... args)</span> </span>&#123;</span><br><span class="line">   StopWatch stopWatch = <span class="keyword">new</span> StopWatch();</span><br><span class="line">   stopWatch.start();</span><br><span class="line">   ConfigurableApplicationContext context = <span class="keyword">null</span>;</span><br><span class="line">   Collection&lt;SpringBootExceptionReporter&gt; exceptionReporters = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">   configureHeadlessProperty();</span><br><span class="line">   SpringApplicationRunListeners listeners = getRunListeners(args);</span><br><span class="line">   listeners.starting();</span><br><span class="line">   <span class="keyword">try</span> &#123;</span><br><span class="line">      ApplicationArguments applicationArguments = <span class="keyword">new</span> DefaultApplicationArguments(</span><br><span class="line">            args);</span><br><span class="line">      ConfigurableEnvironment environment = prepareEnvironment(listeners,</span><br><span class="line">            applicationArguments);</span><br><span class="line">      configureIgnoreBeanInfo(environment);</span><br><span class="line">      Banner printedBanner = printBanner(environment);</span><br><span class="line">      context = createApplicationContext();</span><br><span class="line">      exceptionReporters = getSpringFactoriesInstances(</span><br><span class="line">            SpringBootExceptionReporter<span class="class">.<span class="keyword">class</span>,</span></span><br><span class="line">            new Class[] &#123; ConfigurableApplicationContext.class &#125;, context);</span><br><span class="line">      prepareContext(context, environment, listeners, applicationArguments,</span><br><span class="line">            printedBanner);</span><br><span class="line">      refreshContext(context);</span><br><span class="line">      afterRefresh(context, applicationArguments);</span><br><span class="line">      stopWatch.stop();</span><br><span class="line">      <span class="keyword">if</span> (<span class="keyword">this</span>.logStartupInfo) &#123;</span><br><span class="line">         <span class="keyword">new</span> StartupInfoLogger(<span class="keyword">this</span>.mainApplicationClass)</span><br><span class="line">               .logStarted(getApplicationLog(), stopWatch);</span><br><span class="line">      &#125;</span><br><span class="line">      listeners.started(context);</span><br><span class="line">      callRunners(context, applicationArguments);</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="keyword">catch</span> (Throwable ex) &#123;</span><br><span class="line">      handleRunFailure(context, ex, exceptionReporters, listeners);</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(ex);</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="keyword">try</span> &#123;</span><br><span class="line">      listeners.running(context);</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="keyword">catch</span> (Throwable ex) &#123;</span><br><span class="line">      handleRunFailure(context, ex, exceptionReporters, <span class="keyword">null</span>);</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(ex);</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="keyword">return</span> context;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+    
+    <div class="post-footer">
+        <div>
+            
+            转载声明：
+            商业转载请联系作者获得授权,非商业转载请注明出处 © <a href="" target="_blank">Snippet</a>
+            
+            
+        </div>
+        <div>
+            
+        </div>
+    </div>
+</article>
+<div class="article-nav prev-next-wrap clearfix">
+    
+    <a href="/2019/06/12/SpringApplication%E4%B9%8B%E5%88%9D%E5%A7%8B%E5%8C%96/" class="pre-post btn btn-default" title='SpringApplication之初始化'>
+        <i class="fa fa-angle-left fa-fw"></i><span class="hidden-lg">上一篇</span>
+        <span class="hidden-xs">
+            SpringApplication之初始化</span>
+    </a>
+    
+    
+    <a href="/2019/06/11/Sentinel/" class="next-post btn btn-default" title='分布式环境之高并发场景下的限流与熔断'>
+        <span class="hidden-lg">下一篇</span>
+        <span class="hidden-xs">
+            分布式环境之高并发场景下的限流与熔断</span><i class="fa fa-angle-right fa-fw"></i>
+    </a>
+    
+</div>
+
+<div id="comments">
+    
+
+<div id="vcomments" class="valine"></div>
+
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="/assets/valine.min.js"></script>
+
+<script>
+new Valine({
+    av: AV,
+    el: '#vcomments',
+    appId: 'jTdYALXsJL8VUoY3NAGWyUvY-gzGzoHsz',
+    appKey: 'JWcBzRsMhB6GhdduKEg2GlGT',
+    placeholder: '欢迎留言',
+    notify: false,
+    verify: true,
+    avatar: 'mm',
+    meta: 'nick,mail'.split(','),
+    pageSize: '10',
+    path: window.location.pathname,
+    lang: 'zh-CN'.toLowerCase()
+})
+</script>
+
+
+</div>
+
+                </main>
+                
+                    <aside id="article-toc" role="navigation" class="col-md-4">
+    <div class="widget">
+        <h3 class="title">
+            文章目录
+        </h3>
+        
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#null"><span class="toc-text">
+   外部容器启动流程及原理 author: Tank
+    </span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#前言"><span class="toc-text">前言</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#外部容器启动准备工作"><span class="toc-text">外部容器启动准备工作</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#1、准备一个外部容器如-（tomcat）在idea里配置好即可，这里不做多解释"><span class="toc-text">1、准备一个外部容器如 （tomcat）在idea里配置好即可，这里不做多解释</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#2、需要新增一个servlet初始化时指定主类的一个类-ServletInitializer-名字随意，这个是模版生成的"><span class="toc-text">2、需要新增一个servlet初始化时指定主类的一个类  (ServletInitializer 名字随意，这个是模版生成的)</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#3、指定打包方式为war-tomcat依赖的scope需要改成provided"><span class="toc-text">3、指定打包方式为war   tomcat依赖的scope需要改成provided</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#4、查看servlet3-0规范-Annotations-and-pluggability-gt-Shared-libraries-runtimes-pluggability"><span class="toc-text">4、查看servlet3.0规范  Annotations and pluggability  -&gt; Shared libraries &#x2F; runtimes pluggability</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#启动流程原理"><span class="toc-text">启动流程原理</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#org-springframework-spring-web-5-0-8-为例-打开META-INF-services"><span class="toc-text">org.springframework:spring-web:5.0.8 为例     打开META-INF&#x2F;services</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#SpringServletContainerInitializer-【此类为ServletContainerInitializer子类】"><span class="toc-text">SpringServletContainerInitializer    【此类为ServletContainerInitializer子类】</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#WebApplicationInitializer-【SpringServletContainerInitializer能处理的类型】"><span class="toc-text">WebApplicationInitializer    【SpringServletContainerInitializer能处理的类型】</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#SpringBootServletInitializer-【WebApplicationInitializer-的抽象实现】"><span class="toc-text">SpringBootServletInitializer   【WebApplicationInitializer   的抽象实现】</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#SpringApplication-spring应用的启动入口-无论是外部容器启动还是嵌入式容器启动都必须从此处开始"><span class="toc-text">SpringApplication     spring应用的启动入口  无论是外部容器启动还是嵌入式容器启动都必须从此处开始</span></a></li></ol></li></ol></li></ol></li></ol>
+        
+    </div>
+</aside>
+                
+            </div>
+        </div>
+    </section>
+    <footer class="main-footer">
+    <div class="container">
+        <div class="row">
+        </div>
+    </div>
+</footer>
+<a id="back-to-top" class="icon-btn hide">
+    <i class="fa fa-chevron-up"></i>
+</a>
+    <div class="copyright">
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="busuanzi">
+    
+    访问量:
+    <strong id="busuanzi_value_site_pv">
+        <i class="fa fa-spinner fa-spin"></i>
+    </strong>
+    &nbsp; | &nbsp;
+    访客数:
+    <strong id="busuanzi_value_site_uv">
+        <i class="fa fa-spinner fa-spin"></i>
+    </strong>
+    
+</div>
+            </div>
+            <div class="col-sm-12">
+                <span>Copyright &copy;
+                    2017
+                    
+                </span> |
+                <span>
+                    Powered by <a href="//hexo.io" class="copyright-links" target="_blank" rel="nofollow">Hexo</a>
+                </span> |
+                <span>
+                    Theme by <a href="//github.com/shenliyang/hexo-theme-snippet.git" class="copyright-links" target="_blank" rel="nofollow">Snippet</a>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+<script src="/js/app.js?rev=@@hash.js"></script>
+
+</body>
+</html>

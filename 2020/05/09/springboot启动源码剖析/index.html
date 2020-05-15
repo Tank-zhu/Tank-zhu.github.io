@@ -1,0 +1,362 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN">
+
+<head>
+    <!--Setting-->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+    <meta http-equiv="Cache-Control" content="no-siteapp">
+    <meta http-equiv="Cache-Control" content="no-transform">
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta name="apple-mobile-web-app-capable" content="Tank">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="format-detection" content="telephone=no,email=no,adress=no">
+    <meta name="browsermode" content="application">
+    <meta name="screen-orientation" content="portrait">
+    <meta name="theme-version" content="1.2.3">
+    <meta name="root" content="/">
+    <link rel="dns-prefetch" href="https://tank-zhu.github.io">
+    <!--SEO-->
+
+<meta name="keywords" content="spring-boot" />
+
+
+<meta name="description" content="
+ 
+   springboot启动源码剖析 author: Tank
+ 
+
+
+前言之前有写过springboot往往以运行main方法来启动应用，初始化 上下文 IOC…. 那main方法又是..." />
+
+
+<meta name="robots" content="all" />
+<meta name="google" content="all" />
+<meta name="googlebot" content="all" />
+<meta name="verify" content="all" />
+    <!--Title-->
+
+<title>
+    
+    springboot启动源码剖析 |
+    
+    Tank
+</title>
+
+<link rel="alternate" href="/atom.xml" title="Tank" type="application/atom+xml">
+
+
+<link rel="icon" href="/favicon.ico">
+
+    
+
+
+<link rel="stylesheet" href="/css/bootstrap.min.css?rev=3.3.7.css">
+<link rel="stylesheet" href="/css/font-awesome.min.css?rev=4.7.0.css">
+<link rel="stylesheet" href="/css/style.css?rev=@@hash.css">
+
+    
+<div class="hide">
+    <script type="text/javascript">
+    var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+    document.write(unescape("%3Cspan class='cnzz_stat_icon_1263868967 hide' %3E%3Cscript%20src%3D%22https%3A%2F%2Fs95.cnzz.com%2Fz_stat.php%3Fweb_id%3D1272564536%22%3E%3C%2Fscript%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "s19.cnzz.com/z_stat.php%3Fid%3D1263868967%26show%3Dpic1' type='text/javascript'%3E%3C/script%3E"));
+    </script>
+</div>
+
+
+
+
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+<!--[if lte IE 8]>
+<style>
+    html{ font-size: 1em }
+</style>
+<![endif]-->
+<!--[if lte IE 9]>
+<div style="ie">你使用的浏览器版本过低，为了你更好的阅读体验，请更新浏览器的版本或者使用其他现代浏览器，比如Chrome、Firefox、Safari等。</div>
+<![endif]-->
+<body>
+    <header class="main-header"  style="background-image:url(
+    http://snippet.shenliyang.com/img/banner.jpg)"
+     >
+    <div class="main-header-box">
+        <a class="header-avatar" href="/" title='Tank'>
+            <img src="/img/avatar.jpg" alt="logo头像" class="img-responsive center-block">
+        </a>
+        <div class="branding">
+            <!--<h2 class="text-hide">Snippet主题,从未如此简单有趣</h2>-->
+            
+            <h2>
+                优秀是一种习惯
+            </h2>
+            
+        </div>
+    </div>
+</header>
+    <nav class="main-navigation">
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="navbar-header"><span class="nav-toggle-button collapsed pull-right" data-toggle="collapse" data-target="#main-menu" id="mnav">
+                        <span class="sr-only"></span>
+                        <i class="fa fa-bars"></i>
+                    </span>
+                    <a class="navbar-brand" href="https://tank-zhu.github.io">
+                        Tank</a>
+                </div>
+                <div class="collapse navbar-collapse" id="main-menu">
+                    <ul class="menu">
+                        
+                        <li role="presentation" class="text-center">
+                            <a href="/"><i class="fa "></i>
+                                首页</a>
+                        </li>
+                        
+                        <li role="presentation" class="text-center">
+                            <a href="/categories/大数据/"><i class="fa "></i>
+                                大数据</a>
+                        </li>
+                        
+                        <li role="presentation" class="text-center">
+                            <a href="/categories/后端/"><i class="fa "></i>
+                                后端</a>
+                        </li>
+                        
+                        <li role="presentation" class="text-center">
+                            <a href="/categories/spring系列/"><i class="fa "></i>
+                                spring系列</a>
+                        </li>
+                        
+                        <li role="presentation" class="text-center">
+                            <a href="/categories/框架系列/"><i class="fa "></i>
+                                框架系列</a>
+                        </li>
+                        
+                        <li role="presentation" class="text-center">
+                            <a href="/categories/工具/"><i class="fa "></i>
+                                工具</a>
+                        </li>
+                        
+                        <li role="presentation" class="text-center">
+                            <a href="/archives/"><i class="fa "></i>
+                                时间轴</a>
+                        </li>
+                        
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+    <section class="content-wrap">
+        <div class="container">
+            <div class="row">
+                <main class="col-md-8 main-content m-post">
+                    <p id="process"></p>
+<article class="post">
+    <div class="post-head">
+        <h1 id="springboot启动源码剖析">
+            
+            springboot启动源码剖析
+            
+        </h1>
+        <div class="post-meta">
+    
+    <span class="categories-meta fa-wrap">
+        <i class="fa fa-folder-open-o"></i>
+        <a class="category-link" href="/categories/spring%E7%B3%BB%E5%88%97/">spring系列</a>
+    </span>
+    
+    
+    <span class="fa-wrap">
+        <i class="fa fa-tags"></i>
+        <span class="tags-meta">
+            
+            <a class="tag-link" href="/tags/spring-boot/" rel="tag">spring-boot</a>
+            
+        </span>
+    </span>
+    
+    
+    
+    <span class="fa-wrap">
+        <i class="fa fa-clock-o"></i>
+        <span class="date-meta">
+            2020/05/09</span>
+    </span>
+    
+    <span class="fa-wrap">
+        <i class="fa fa-eye"></i>
+        <span id="busuanzi_value_page_pv"></span>
+    </span>
+    
+    
+</div>
+        
+        
+    </div>
+    
+    <div class="post-body post-content">
+        <center>
+ <h2>
+   springboot启动源码剖析 author: Tank
+ </h2>
+</center>
+
+<h4 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h4><p>之前有写过springboot往往以运行main方法来启动应用，初始化 上下文 IOC…. 那main方法又是如何被执行的呢？被谁执行的呢。</p>
+<h4 id="java-jar-application-jar-先说jar的启动。（war其实是一样的）"><a href="#java-jar-application-jar-先说jar的启动。（war其实是一样的）" class="headerlink" title="java -jar application.jar 先说jar的启动。（war其实是一样的）"></a>java -jar application.jar 先说jar的启动。（war其实是一样的）</h4><ol>
+<li><p>​    先把一个springboot的jar解压 来看看打包后的结构 target</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">├── [ <span class="number">128</span>]  BOOT-INF</span><br><span class="line">│   ├── [ <span class="number">128</span>]  classes</span><br><span class="line">│   │   ├── [   <span class="number">1</span>]  application.properties</span><br><span class="line">│   │   └── [  <span class="number">96</span>]  com</span><br><span class="line">│   │       └── [  <span class="number">96</span>]  example</span><br><span class="line">│   │           └── [  <span class="number">96</span>]  demo</span><br><span class="line">│   │               └── [ <span class="number">733</span>]  DemoApplication<span class="class">.<span class="keyword">class</span></span></span><br><span class="line">│   └── [1.2K]  lib</span><br><span class="line">│       ├── [ <span class="number">65</span>K]  classmate-<span class="number">1.4</span><span class="number">.0</span>.jar </span><br><span class="line">  				.... 省略</span><br><span class="line">├── [ <span class="number">128</span>]  META-INF</span><br><span class="line">│   ├── [ <span class="number">361</span>]  MANIFEST.MF</span><br><span class="line">│   └── [  <span class="number">96</span>]  maven</span><br><span class="line">│       └── [  <span class="number">96</span>]  com.example</span><br><span class="line">│           └── [ <span class="number">128</span>]  demo</span><br><span class="line">│               ├── [  <span class="number">59</span>]  pom.properties</span><br><span class="line">│               └── [<span class="number">1.4</span>K]  pom.xml</span><br><span class="line"></span><br><span class="line"> <span class="comment">//这个是一个springboot demo jar 解压后的结构 (org 源码目录去除了。。)</span></span><br></pre></td></tr></table></figure>
+
+
+
+</li>
+</ol>
+<ol start="2">
+<li><p>来看看非常重要的 MANIFEST.MF 文件</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">Manifest-Version</span>: <span class="string">1.0</span></span><br><span class="line"><span class="meta">Implementation-Title</span>: <span class="string">demo</span></span><br><span class="line"><span class="meta">Implementation-Version</span>: <span class="string">0.0.1-SNAPSHOT</span></span><br><span class="line"><span class="meta">Start-Class</span>: <span class="string">com.example.demo.DemoApplication</span></span><br><span class="line"><span class="meta">Spring-Boot-Classes</span>: <span class="string">BOOT-INF/classes/</span></span><br><span class="line"><span class="meta">Spring-Boot-Lib</span>: <span class="string">BOOT-INF/lib/</span></span><br><span class="line"><span class="meta">Build-Jdk-Spec</span>: <span class="string">1.8</span></span><br><span class="line"><span class="meta">Spring-Boot-Version</span>: <span class="string">2.1.11.RELEASE</span></span><br><span class="line"><span class="meta">Created-By</span>: <span class="string">Maven Archiver 3.4.0</span></span><br><span class="line"><span class="meta">Main-Class</span>: <span class="string">org.springframework.boot.loader.JarLauncher</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 先看看main-class 这个才是java -jar 命令调用的类  和 start-class 是应用的主类</span></span><br></pre></td></tr></table></figure>
+
+
+
+</li>
+</ol>
+<ol start="3">
+<li><p>来看看java 官方定义 <a href="https://docs.oracle.com/javase/8/docs/technotes/tools/windows/java.html" target="_blank" rel="noopener">传送门</a></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">Description</span><br><span class="line">The java command starts a Java application. <span class="function">It does <span class="keyword">this</span> by starting the Java Runtime <span class="title">Environment</span> <span class="params">(JRE)</span>, loading the specified class, and calling that class's <span class="title">main</span><span class="params">()</span> method. The method must be declared <span class="keyword">public</span> and <span class="keyword">static</span>, it must not return any value, and it must accept a String array as a parameter. The method declaration has the following form:</span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span></span></span><br><span class="line"><span class="function">The java command can be used to launch a JavaFX application by loading a class that either has a <span class="title">main</span><span class="params">()</span> method or that extends javafx.application.Application. In the latter <span class="keyword">case</span>, the launcher constructs an instance of the Application class, calls its <span class="title">init</span><span class="params">()</span> method, and then calls the <span class="title">start</span><span class="params">(javafx.stage.Stage)</span> method.</span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">By <span class="keyword">default</span>, the first argument that is not an option of the java command is the fully qualified name of the class to be called. If the -jar option is specified, its argument is the name of the JAR file containing class and resource files <span class="keyword">for</span> the application. The startup class must be indicated by the Main-Class manifest header in its source code.</span></span><br><span class="line"><span class="function"><span class="comment">//如果指定了-jar选项，则其参数为包含应用程序类和资源文件的JAR文件的名称。 启动类必须由其源代码中的Main-//Class清单标头指示。 </span></span></span><br><span class="line"><span class="function">The JRE searches <span class="keyword">for</span> the startup <span class="title">class</span> <span class="params">(and other classes used by the application)</span> in three sets of locations: the bootstrap class path, the installed extensions, and the user's class path.</span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">Arguments after the class file name or the JAR file name are passed to the <span class="title">main</span><span class="params">()</span> method.</span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">The javaw command is identical to java, except that with javaw there is no associated console window. Use javaw when you <span class="keyword">do</span> not want a command prompt window to appear. The javaw launcher will, however, display a dialog box with error information <span class="keyword">if</span> a launch fails</span></span><br></pre></td></tr></table></figure>
+
+<h5 id="也就是说java-jar-jre会去读取清单获取main-class然后调用他的main方法。"><a href="#也就是说java-jar-jre会去读取清单获取main-class然后调用他的main方法。" class="headerlink" title="也就是说java -jar jre会去读取清单获取main-class然后调用他的main方法。"></a>也就是说java -jar jre会去读取清单获取main-class然后调用他的main方法。</h5></li>
+<li><p>来看看 JarLauncher  </p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- 这个包默认是 spring-boot-maven-plugin 加载的。看源码所以需要加一下这个包--&gt;</span></span><br><span class="line">				<span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-loader<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">JarLauncher</span> <span class="keyword">extends</span> <span class="title">ExecutableArchiveLauncher</span> </span>&#123; <span class="comment">//Launcher 的子类</span></span><br><span class="line">	<span class="keyword">static</span> <span class="keyword">final</span> String BOOT_INF_CLASSES = <span class="string">"BOOT-INF/classes/"</span>;</span><br><span class="line">	<span class="keyword">static</span> <span class="keyword">final</span> String BOOT_INF_LIB = <span class="string">"BOOT-INF/lib/"</span>;</span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="title">JarLauncher</span><span class="params">()</span> </span>&#123;&#125;</span><br><span class="line">	<span class="function"><span class="keyword">protected</span> <span class="title">JarLauncher</span><span class="params">(Archive archive)</span> </span>&#123;<span class="keyword">super</span>(archive);&#125;</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">protected</span> <span class="keyword">boolean</span> <span class="title">isNestedArchive</span><span class="params">(Archive.Entry entry)</span> </span>&#123;</span><br><span class="line">		<span class="keyword">if</span> (entry.isDirectory()) &#123;</span><br><span class="line">			<span class="keyword">return</span> entry.getName().equals(BOOT_INF_CLASSES);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> entry.getName().startsWith(BOOT_INF_LIB);</span><br><span class="line">	&#125;</span><br><span class="line"><span class="comment">//java -jar 其实调用的是这个main方法 请参考第3条</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">		<span class="keyword">new</span> JarLauncher().launch(args);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">---</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">Launcher</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">launch</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">    <span class="comment">//这里是注册协议</span></span><br><span class="line">		JarFile.registerUrlProtocolHandler();</span><br><span class="line">    <span class="comment">//创建类加载器</span></span><br><span class="line">		ClassLoader classLoader = createClassLoader(getClassPathArchives());</span><br><span class="line">    <span class="comment">//执行前先获取 mainclass 看下面ExecutableArchiveLauncher 拿的就是  Start-Class</span></span><br><span class="line">		launch(args, getMainClass(), classLoader);</span><br><span class="line">	&#125;</span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">launch</span><span class="params">(String[] args, String mainClass, ClassLoader classLoader)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">      <span class="comment">//类加载器传递过来</span></span><br><span class="line">		Thread.currentThread().setContextClassLoader(classLoader);</span><br><span class="line">      <span class="comment">//创建主方法运行器</span></span><br><span class="line">		createMainMethodRunner(mainClass, args, classLoader).run();</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="function"><span class="keyword">protected</span> MainMethodRunner <span class="title">createMainMethodRunner</span><span class="params">(String mainClass, String[] args, ClassLoader classLoader)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 这里是直接用的new 并传入了Start-Class 也就是我们的应用的启动类，请看第2条 及main方法参数 。</span></span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">new</span> MainMethodRunner(mainClass, args);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">---</span><br><span class="line">  <span class="comment">//主方法运行器</span></span><br><span class="line">  <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MainMethodRunner</span> </span>&#123;</span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="title">MainMethodRunner</span><span class="params">(String mainClass, String[] args)</span> </span>&#123;</span><br><span class="line">		<span class="keyword">this</span>.mainClassName = mainClass;</span><br><span class="line">		<span class="keyword">this</span>.args = (args != <span class="keyword">null</span>) ? args.clone() : <span class="keyword">null</span>;</span><br><span class="line">	&#125;</span><br><span class="line">    </span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">		Class&lt;?&gt; mainClass = Thread.currentThread().getContextClassLoader().loadClass(<span class="keyword">this</span>.mainClassName);</span><br><span class="line">		Method mainMethod = mainClass.getDeclaredMethod(<span class="string">"main"</span>, String[]<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">    <span class="comment">//主方法运行器通过反射调用我们的业务应用的main方法</span></span><br><span class="line">		mainMethod.invoke(<span class="keyword">null</span>, <span class="keyword">new</span> Object[] &#123; <span class="keyword">this</span>.args &#125;);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">---</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">ExecutableArchiveLauncher</span> <span class="keyword">extends</span> <span class="title">Launcher</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">protected</span> String <span class="title">getMainClass</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">		Manifest manifest = <span class="keyword">this</span>.archive.getManifest();</span><br><span class="line">		String mainClass = <span class="keyword">null</span>;</span><br><span class="line">		<span class="keyword">if</span> (manifest != <span class="keyword">null</span>) &#123;</span><br><span class="line">			mainClass = manifest.getMainAttributes().getValue(<span class="string">"Start-Class"</span>);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> (mainClass == <span class="keyword">null</span>) &#123;</span><br><span class="line">			<span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"No 'Start-Class' manifest entry specified in "</span> + <span class="keyword">this</span>);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> mainClass;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+
+<h5 id="整体流程就是这样的。但是里面细节需要单独一一列出。下一篇继续"><a href="#整体流程就是这样的。但是里面细节需要单独一一列出。下一篇继续" class="headerlink" title="整体流程就是这样的。但是里面细节需要单独一一列出。下一篇继续"></a>整体流程就是这样的。但是里面细节需要单独一一列出。下一篇继续</h5></li>
+</ol>
+
+    </div>
+    
+    <div class="post-footer">
+        <div>
+            
+            转载声明：
+            商业转载请联系作者获得授权,非商业转载请注明出处 © <a href="" target="_blank">Snippet</a>
+            
+            
+        </div>
+        <div>
+            
+        </div>
+    </div>
+</article>
+<div class="article-nav prev-next-wrap clearfix">
+    
+    
+    <a href="/2019/06/12/SpringApplication%E4%B9%8B%E5%88%9D%E5%A7%8B%E5%8C%96/" class="next-post btn btn-default" title='SpringApplication之初始化'>
+        <span class="hidden-lg">下一篇</span>
+        <span class="hidden-xs">
+            SpringApplication之初始化</span><i class="fa fa-angle-right fa-fw"></i>
+    </a>
+    
+</div>
+
+<div id="comments">
+    
+
+<div id="vcomments" class="valine"></div>
+
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="/assets/valine.min.js"></script>
+
+<script>
+new Valine({
+    av: AV,
+    el: '#vcomments',
+    appId: 'jTdYALXsJL8VUoY3NAGWyUvY-gzGzoHsz',
+    appKey: 'JWcBzRsMhB6GhdduKEg2GlGT',
+    placeholder: '欢迎留言',
+    notify: false,
+    verify: true,
+    avatar: 'mm',
+    meta: 'nick,mail'.split(','),
+    pageSize: '10',
+    path: window.location.pathname,
+    lang: 'zh-CN'.toLowerCase()
+})
+</script>
+
+
+</div>
+
+                </main>
+                
+                    <aside id="article-toc" role="navigation" class="col-md-4">
+    <div class="widget">
+        <h3 class="title">
+            文章目录
+        </h3>
+        
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#null"><span class="toc-text">
+   springboot启动源码剖析 author: Tank
+ </span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#前言"><span class="toc-text">前言</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#java-jar-application-jar-先说jar的启动。（war其实是一样的）"><span class="toc-text">java -jar application.jar 先说jar的启动。（war其实是一样的）</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#也就是说java-jar-jre会去读取清单获取main-class然后调用他的main方法。"><span class="toc-text">也就是说java -jar jre会去读取清单获取main-class然后调用他的main方法。</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#整体流程就是这样的。但是里面细节需要单独一一列出。下一篇继续"><span class="toc-text">整体流程就是这样的。但是里面细节需要单独一一列出。下一篇继续</span></a></li></ol></li></ol></li></ol></li></ol>
+        
+    </div>
+</aside>
+                
+            </div>
+        </div>
+    </section>
+    <footer class="main-footer">
+    <div class="container">
+        <div class="row">
+        </div>
+    </div>
+</footer>
+<a id="back-to-top" class="icon-btn hide">
+    <i class="fa fa-chevron-up"></i>
+</a>
+    <div class="copyright">
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="busuanzi">
+    
+    访问量:
+    <strong id="busuanzi_value_site_pv">
+        <i class="fa fa-spinner fa-spin"></i>
+    </strong>
+    &nbsp; | &nbsp;
+    访客数:
+    <strong id="busuanzi_value_site_uv">
+        <i class="fa fa-spinner fa-spin"></i>
+    </strong>
+    
+</div>
+            </div>
+            <div class="col-sm-12">
+                <span>Copyright &copy;
+                    2017
+                    
+                </span> |
+                <span>
+                    Powered by <a href="//hexo.io" class="copyright-links" target="_blank" rel="nofollow">Hexo</a>
+                </span> |
+                <span>
+                    Theme by <a href="//github.com/shenliyang/hexo-theme-snippet.git" class="copyright-links" target="_blank" rel="nofollow">Snippet</a>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+<script src="/js/app.js?rev=@@hash.js"></script>
+
+</body>
+</html>
